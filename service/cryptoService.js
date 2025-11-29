@@ -22,6 +22,101 @@ const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
 
 console.log('✓ Par de llaves RSA generadas (2048 bits)');
 
+const { publicKey: dsaPublicKey, privateKey: dsaPrivateKey } = 
+  crypto.generateKeyPairSync('dsa', {
+    modulusLength: 1024,  // Tamaño de la llave: 1024 bits
+    divisorLength: 224,   // Tamaño del subgrupo primo (recomendado para DSA-1024)
+    publicKeyEncoding: {
+      type: 'spki',       // SubjectPublicKeyInfo (estándar X.509)
+      format: 'pem'       // Formato PEM (texto ASCII armored)
+    },
+    privateKeyEncoding: {
+      type: 'pkcs8',      // PKCS#8 (estándar para llaves privadas)
+      format: 'pem'       // Formato PEM
+    }
+  });
+
+console.log('✓ Par de llaves DSA generadas (1024 bits, divisor 224 bits)');
+
+function getDsaPublicKeyPem() {
+  return dsaPublicKey;
+}
+
+/**
+ * Firma un mensaje usando DSA con SHA-256
+ * 
+ * @param {string} message - Mensaje a firmar (UTF-8)
+ * @returns {object} Objeto con signatureBase64, algorithm, keySize y publicKeyPem
+ * @throws {Error} Si el mensaje es inválido o la firma falla
+ */
+function signWithDsa(message) {
+  if (!message || typeof message !== 'string') {
+    throw new Error('El mensaje a firmar debe ser un string no vacío');
+  }
+
+  // Crear objeto Sign con algoritmo SHA-256
+  const sign = crypto.createSign('sha256');
+  
+  // Actualizar el objeto Sign con el mensaje a firmar
+  sign.update(message, 'utf8');
+  
+  // Finalizar el proceso de actualización
+  sign.end();
+
+  // Firmar el mensaje usando la llave privada DSA
+  // La firma resultante es un Buffer binario
+  const signature = sign.sign(dsaPrivateKey);
+
+  // Convertir la firma a Base64 para transmisión/almacenamiento
+  const signatureBase64 = signature.toString('base64');
+
+  return {
+    algorithm: 'DSA-SHA256',
+    keySize: 1024,
+    signatureBase64,
+    publicKeyPem: dsaPublicKey // Opcional: para mostrar en la respuesta
+  };
+}
+
+/**
+ * Verifica una firma DSA de un mensaje
+ * 
+ * @param {string} message - Mensaje original (UTF-8)
+ * @param {string} signatureBase64 - Firma en formato Base64
+ * @returns {object} Objeto con isValid (boolean), algorithm y keySize
+ * @throws {Error} Si los parámetros son inválidos o la verificación falla
+ */
+function verifyWithDsa(message, signatureBase64) {
+  if (!message || typeof message !== 'string') {
+    throw new Error('El mensaje debe ser un string no vacío');
+  }
+
+  if (!signatureBase64 || typeof signatureBase64 !== 'string') {
+    throw new Error('La firma debe ser un string Base64 no vacío');
+  }
+
+  // Convertir la firma de Base64 a Buffer
+  const signatureBuffer = Buffer.from(signatureBase64, 'base64');
+
+  // Crear objeto Verify con algoritmo SHA-256
+  const verify = crypto.createVerify('sha256');
+  
+  // Actualizar el objeto Verify con el mensaje original
+  verify.update(message, 'utf8');
+  
+  // Finalizar el proceso de actualización
+  verify.end();
+
+  // Verificar la firma usando la llave pública DSA
+  // Retorna true si la firma es válida, false en caso contrario
+  const isValid = verify.verify(dsaPublicKey, signatureBuffer);
+
+  return {
+    algorithm: 'DSA-SHA256',
+    keySize: 1024,
+    isValid
+  };
+}
 
 /**
  * Obtiene la llave pública en formato PEM
@@ -210,6 +305,8 @@ module.exports = {
   decryptChaCha20,
   getPublicKeyPem,
   rsaEncrypt,
-  rsaDecrypt
-
+  rsaDecrypt,
+  getDsaPublicKeyPem,
+  signWithDsa,
+  verifyWithDsa
 };

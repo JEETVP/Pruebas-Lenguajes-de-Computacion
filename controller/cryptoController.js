@@ -1,5 +1,6 @@
 const chacha20Service = require('../service/cryptoService');
 const { rsaEncrypt, rsaDecrypt, getPublicKeyPem } = require('../service/cryptoService');
+const {getDsaPublicKeyPem,signWithDsa,verifyWithDsa} = require('../services/cryptoService');
 
 exports.chacha20Encrypt = async (req, res) => {
   try {
@@ -162,6 +163,74 @@ exports.decryptRSA = async (req, res) => {
     console.error('Error al descifrar con RSA-OAEP:', err);
     return res.status(500).json({
       error: 'Error al descifrar con RSA-OAEP'
+    });
+  }
+};
+
+exports.signDsa = async (req, res) => {
+  try {
+    const { message } = req.body;
+
+    // Validación: el campo message es obligatorio
+    if (!message || message.trim() === '') {
+      return res.status(400).json({
+        error: 'El campo message es obligatorio'
+      });
+    }
+
+    // Llamar al servicio de firma
+    const result = signWithDsa(message);
+
+    // Responder con la firma y metadatos
+    return res.status(200).json({
+      algorithm: result.algorithm,
+      keySize: result.keySize,
+      message: message,
+      signatureBase64: result.signatureBase64,
+      publicKeyPem: result.publicKeyPem
+    });
+
+  } catch (err) {
+    console.error('Error al firmar con DSA:', err);
+    return res.status(500).json({
+      error: 'Error al firmar con DSA'
+    });
+  }
+};
+
+exports.verifyDsa = async (req, res) => {
+  try {
+    const { message, signatureBase64 } = req.body;
+
+    // Validación: ambos campos son obligatorios
+    if (!message || message.trim() === '') {
+      return res.status(400).json({
+        error: 'El campo message es obligatorio'
+      });
+    }
+
+    if (!signatureBase64 || signatureBase64.trim() === '') {
+      return res.status(400).json({
+        error: 'El campo signatureBase64 es obligatorio'
+      });
+    }
+
+    // Llamar al servicio de verificación
+    const result = verifyWithDsa(message, signatureBase64);
+
+    // Responder con el resultado de la verificación
+    return res.status(200).json({
+      algorithm: result.algorithm,
+      keySize: result.keySize,
+      message: message,
+      signatureBase64: signatureBase64,
+      isValid: result.isValid
+    });
+
+  } catch (err) {
+    console.error('Error al verificar firma DSA:', err);
+    return res.status(500).json({
+      error: 'Error al verificar con DSA'
     });
   }
 };
