@@ -1,4 +1,5 @@
 const chacha20Service = require('../service/cryptoService');
+const { rsaEncrypt, rsaDecrypt, getPublicKeyPem } = require('../service/cryptoService');
 
 exports.chacha20Encrypt = async (req, res) => {
   try {
@@ -102,6 +103,65 @@ exports.chacha20Decrypt = async (req, res) => {
 
     return res.status(isValidationError ? 400 : 500).json({
       error: error.message
+    });
+  }
+};
+
+exports.encryptRSA = async (req, res) => {
+  try {
+    const { text } = req.body;
+
+    // Validación: el campo text es obligatorio
+    if (!text || text.trim() === '') {
+      return res.status(400).json({
+        error: 'El campo text es obligatorio'
+      });
+    }
+
+    // Llamar al servicio de cifrado
+    const result = rsaEncrypt(text);
+
+    // Responder con el texto cifrado y metadatos
+    return res.status(200).json({
+      algorithm: 'RSA-OAEP',
+      modulusLength: 2048,
+      cipherTextBase64: result.cipherTextBase64,
+      publicKeyPem: result.publicKeyPem
+    });
+
+  } catch (err) {
+    console.error('Error al cifrar con RSA-OAEP:', err);
+    return res.status(500).json({
+      error: 'Error al cifrar con RSA-OAEP'
+    });
+  }
+};
+
+
+exports.decryptRSA = async (req, res) => {
+  try {
+    const { cipherTextBase64 } = req.body;
+
+    // Validación: el campo cipherTextBase64 es obligatorio
+    if (!cipherTextBase64 || cipherTextBase64.trim() === '') {
+      return res.status(400).json({
+        error: 'El campo cipherTextBase64 es obligatorio'
+      });
+    }
+
+    // Llamar al servicio de descifrado
+    const result = rsaDecrypt(cipherTextBase64);
+
+    // Responder con el texto descifrado
+    return res.status(200).json({
+      algorithm: 'RSA-OAEP',
+      plainText: result.plainText
+    });
+
+  } catch (err) {
+    console.error('Error al descifrar con RSA-OAEP:', err);
+    return res.status(500).json({
+      error: 'Error al descifrar con RSA-OAEP'
     });
   }
 };
