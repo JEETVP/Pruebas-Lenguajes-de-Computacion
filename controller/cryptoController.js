@@ -1,6 +1,6 @@
 const chacha20Service = require('../service/cryptoService');
 const { rsaEncrypt, rsaDecrypt, getPublicKeyPem } = require('../service/cryptoService');
-const {getDsaPublicKeyPem,signWithDsa,verifyWithDsa} = require('../services/cryptoService');
+const {getDsaPublicKeyPem,signWithDsa,verifyWithDsa} = require('../service/cryptoService');
 
 exports.chacha20Encrypt = async (req, res) => {
   try {
